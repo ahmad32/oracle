@@ -1,0 +1,21 @@
+name: studio-check
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show runner info
+        run: |
+          echo "Hello from GitHub Actions"
+          echo "Repo: $GITHUB_REPOSITORY"
+          echo "Runner: $(uname -a)"
+          date -u
+          
