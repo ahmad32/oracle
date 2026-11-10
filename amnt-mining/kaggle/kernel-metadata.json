@@ -1,0 +1,14 @@
+{
+  "code_file": "main.py",
+  "competition_sources": [],
+  "dataset_sources": [],
+  "enable_gpu": true,
+  "enable_internet": false,
+  "id": "ahmedriyadi/amnt-pow-solve-plan-b",
+  "is_private": true,
+  "kernel_sources": [],
+  "kernel_type": "script",
+  "language": "python",
+  "machine_shape": "NvidiaTeslaT4",
+  "title": "AMNT PoW Solve Plan B"
+}

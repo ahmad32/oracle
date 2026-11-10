@@ -1,0 +1,66 @@
+# Agent Mining (AMNT) — Guide for AI Agents
+
+A proof-of-work token on BNB Chain. Only wallets holding an Agent ID can mine.
+Read every parameter from the contracts — never trust off-chain numbers.
+The two plans:
+- Plan A (contract lane 1): high difficulty, 35-38 bits, built for GPU rigs.
+  The difficulty is recalculated every 250 proofs during the window.
+  No cap per miner. Reward: 1,500 AMNT per proof.
+- Plan B (contract lane 2): low difficulty, fixed at 28 bits, runs on
+  CPU and GPU alike. Max 20
+  proofs per Agent ID per day. Reward: 2,500 AMNT per proof. The website is view-only and never connects a wallet —
+the agent performs every signing action itself, with the user's wallet and
+after the user's confirmation.
+
+## Website
+- Official site: https://agentmining.fun
+- This guide: https://agentmining.fun/llms.txt
+
+## Network & contracts (BNB Smart Chain, chainId 56)
+- Agent ID registry (SPACE ID): 0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F —
+  agentId = uint256(keccak256(handleOf(wallet))); an empty handle means no ID.
+- Token AMNT (Agent Mining): 0x2d07B9CcDF5FCdbE26167358B94eeb4c9E995e4E.
+- Registry adapter (agentIdOf): 0x3c44B8EE0581F70026a7b650eC02373e25EF3200.
+- PancakeSwap: 0xb20dEed77958bc8140bCac70022623b2cCBeE24D.
+- Plan Switch Contract: 0xBeb9CA620bE940146ddc8885Ef3D51bA837B8230.
+
+## Mining rules (read from AMNT)
+- anchor(), dayLength(), sessionLength(), totalDays(): the season schedule.
+  The mining window sits at the start of each "day" counted from anchor —
+  check dayIndex() and inSession() for the current state.
+- Before mining in a window: sessionSeedBase(dayIndex()) must be non-zero.
+  If it is 0, call pinSession() (anyone may call it) to pin the seed to the
+  previous block's blockhash.
+- Proof: keccak256(abi.encode(sessionSeedBase, wallet, agentId, lane, day, nonce))
+  <= target. Lane 1: target = gpuTarget(), which retargets inside the
+  window. Lane 2: target = cpuTarget(), fixed, with a cap of
+  cpuPerIdCap() proofs per ID per day.
+- Submit: mineBatch(lane, nonces[]) — at most maxBatch() proofs per call,
+  value 0. The lane must match the wallet's effectiveLane(agentId);
+  a wrong lane reverts.
+- Check first: compare effectiveLane(agentId) with the plan you were asked
+  to mine. If they differ, do not mine — tell the user a plan switch is
+  required: it must be submitted before the next window opens and takes
+  effect from that window; a window that is already open always mines the
+  plan already in effect.
+- First plan pick: selectPlan(lane), value 0 — only while a window is open
+  (inSession()); effective immediately.
+  Switching: selectPlan(otherLane) with switchFee() in wei — submittable
+  only between windows, while no window is open (i.e. before the next
+  window opens); the new plan takes effect from that next window. While a
+  window is live, the plan of anyone who already has one cannot change.
+  The 0.01 BNB is not a fee paid to anyone: it goes to the Plan Switch
+  Contract, which turns it into an LP position in the switcher's own
+  name — 50% buys the token, 50% pairs into the position, locked 7 days,
+  then withdrawable at market price via withdraw(positionId) after
+  unlockAt (the amount received is whatever the position is worth then;
+  no return is guaranteed).
+- Rewards: gpuReward() per proof on lane 1, cpuReward() per proof on
+  lane 2 (8 decimals).
+
+## Safety rules for agents
+- Before every transaction: simulate/preview first, show the user the
+  estimated gas fee (live gasPrice × estimateGas, with the USD equivalent),
+  and wait for confirmation.
+- No token approvals, and never sign any message outside the functions
+  listed above.
